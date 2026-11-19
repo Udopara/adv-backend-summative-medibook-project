@@ -31,12 +31,24 @@ CREATE TABLE IF NOT EXISTS Appointment (
     booked_on       DATETIME NOT NULL,
     patient_id      INT UNSIGNED NOT NULL,
     doctor_id       INT UNSIGNED NOT NULL,
+    status          ENUM('booked', 'cancelled') NOT NULL DEFAULT 'booked',
+    cancelled_on    DATETIME NULL,
+    refund_amount   DECIMAL(10, 2) NULL,
+
+    active_slot     DATETIME AS (IF(status = 'booked', appt_datetime, NULL)) STORED,
 
     CONSTRAINT pk_appointment PRIMARY KEY (appt_ref),
     CONSTRAINT chk_appointment_amount_paid CHECK (amount_paid >= 0),
 
-    CONSTRAINT uq_doctor_appointment_datetime
-        UNIQUE (doctor_id, appt_datetime),
+    CONSTRAINT uq_doctor_active_slot
+        UNIQUE (doctor_id, active_slot),
+
+    CONSTRAINT chk_appointment_cancellation CHECK (
+        (status = 'booked' AND cancelled_on IS NULL AND refund_amount IS NULL)
+        OR (status = 'cancelled' AND cancelled_on IS NOT NULL AND refund_amount IS NOT NULL)
+    ),
+    CONSTRAINT chk_appointment_refund_amount
+        CHECK (refund_amount IS NULL OR (refund_amount >= 0 AND refund_amount <= amount_paid)),
 
     CONSTRAINT fk_appointment_patient
         FOREIGN KEY (patient_id)

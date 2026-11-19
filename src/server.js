@@ -2,6 +2,7 @@ import "dotenv/config";
 import express from "express";
 import patientRouter from "./routes/patient.route.js";
 import doctorRouter from "./routes/doctor.route.js";
+import appointmentRouter from "./routes/appointment.route.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 
 const PORT = process.env.PORT;
@@ -16,6 +17,7 @@ app.get("/", (req, res) => {
 
 app.use("/patient", patientRouter);
 app.use("/doctor", doctorRouter);
+app.use("/appointment", appointmentRouter);
 
 app.use(notFoundHandler);
 
