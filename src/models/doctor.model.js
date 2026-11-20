@@ -119,6 +119,41 @@ class DoctorModel {
 
     return result.affectedRows > 0;
   }
+
+  static async report() {
+    const [rows] = await pool.execute(`
+      SELECT 
+        d.doctor_id,
+        d.doctor_name,
+        d.speciality,
+        d.consultation_fee,
+        COUNT(CASE WHEN a.status = 'booked' THEN 1 END) AS total_appointments,
+        COALESCE(
+          SUM(
+            CASE 
+              WHEN a.status = 'booked' THEN a.amount_paid 
+              WHEN a.status = 'cancelled' THEN (a.amount_paid - COALESCE(a.refund_amount, 0)) 
+              ELSE 0 
+            END
+          ), 
+          0.00
+        ) AS revenue_collected
+      FROM Doctor d
+      LEFT JOIN Appointment a 
+        ON a.doctor_id = d.doctor_id
+      GROUP BY d.doctor_id, d.doctor_name, d.speciality, d.consultation_fee
+      ORDER BY total_appointments DESC, revenue_collected DESC, d.doctor_id ASC
+    `);
+
+    return rows.map((row) => ({
+      doctor_id: row.doctor_id,
+      doctor_name: row.doctor_name,
+      speciality: row.speciality,
+      consultation_fee: Number(row.consultation_fee),
+      total_appointments: Number(row.total_appointments),
+      revenue_collected: Number(row.revenue_collected),
+    }));
+  }
 }
 
 export default DoctorModel;

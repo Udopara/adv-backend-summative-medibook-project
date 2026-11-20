@@ -54,3 +54,13 @@ export const cancelAppointment = async (req, res) => {
     ...cancellation,
   });
 };
+
+export const getBusyDaysReport = async (req, res) => {
+  const threshold = req.query.threshold !== undefined ? Number(req.query.threshold) : 80;
+  if (Number.isNaN(threshold) || threshold < 0 || threshold > 100) {
+    throw new AppError("threshold must be a number between 0 and 100", 400);
+  }
+
+  const busyDays = await AppointmentModel.busyDays(threshold);
+  res.status(200).json(busyDays);
+};

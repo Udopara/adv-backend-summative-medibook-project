@@ -36,6 +36,11 @@ export const getDoctorStats = async (req, res) => {
   res.status(200).json(stats);
 };
 
+export const getDoctorsReport = async (req, res) => {
+  const report = await DoctorModel.report();
+  res.status(200).json(report);
+};
+
 export const createDoctor = async (req, res) => {
   validateDoctor(req.body);
   const doctor = await DoctorModel.create(req.body);

@@ -128,6 +128,36 @@ class AppointmentModel {
       conn.release();
     }
   }
+
+  static async busyDays(thresholdPercent = 80) {
+    const minSlots = (thresholdPercent * DAILY_CAP) / 100;
+
+    const [rows] = await pool.execute(
+      `SELECT 
+         d.doctor_id,
+         d.doctor_name,
+         d.speciality,
+         DATE_FORMAT(a.appt_datetime, '%Y-%m-%d') AS date,
+         COUNT(a.appt_ref) AS appointments_count,
+         ROUND((COUNT(a.appt_ref) / ${DAILY_CAP}) * 100, 2) AS utilization_percent
+       FROM Appointment a
+       JOIN Doctor d ON a.doctor_id = d.doctor_id
+       WHERE a.status = 'booked'
+       GROUP BY d.doctor_id, d.doctor_name, d.speciality, DATE(a.appt_datetime)
+       HAVING COUNT(a.appt_ref) > ?
+       ORDER BY DATE(a.appt_datetime) ASC, appointments_count DESC`,
+      [minSlots],
+    );
+
+    return rows.map((row) => ({
+      doctor_id: row.doctor_id,
+      doctor_name: row.doctor_name,
+      speciality: row.speciality,
+      date: row.date,
+      appointments_count: Number(row.appointments_count),
+      utilization_percent: Number(row.utilization_percent),
+    }));
+  }
 }
 
 export default AppointmentModel;
