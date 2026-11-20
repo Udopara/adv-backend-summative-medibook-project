@@ -26,6 +26,16 @@ export const getDoctorById = async (req, res) => {
   res.status(200).json(doctor);
 };
 
+export const getDoctorStats = async (req, res) => {
+  const numId = Number(req.params.id);
+  if (!Number.isInteger(numId) || numId <= 0) {
+    throw new AppError("Doctor id must be a positive integer", 400);
+  }
+  const stats = await DoctorModel.getStats(numId);
+  if (!stats) throw new AppError("No doctor found", 404);
+  res.status(200).json(stats);
+};
+
 export const createDoctor = async (req, res) => {
   validateDoctor(req.body);
   const doctor = await DoctorModel.create(req.body);
