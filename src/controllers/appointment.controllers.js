@@ -1,6 +1,7 @@
 import AppointmentModel from "../models/appointment.model.js";
 import { AppError } from "../libs/appError.js";
 import { parseApptDatetime, validateSlot } from "../libs/appointmentRules.js";
+import Logger from "../libs/logger.js";
 
 const isPositiveInt = (value) => Number.isInteger(Number(value)) && Number(value) > 0;
 
@@ -44,6 +45,7 @@ export const bookAppointment = async (req, res) => {
   });
 
   res.status(201).json(appointment);
+  Logger.logBooking({ appointmentRef: appointment.appt_ref });
 };
 
 export const cancelAppointment = async (req, res) => {
@@ -53,6 +55,8 @@ export const cancelAppointment = async (req, res) => {
     message: `Appointment cancelled. Refund: ${cancellation.refund_amount.toFixed(2)} (${cancellation.refund_percent}%)`,
     ...cancellation,
   });
+
+  Logger.logCancellation({appointmentRef: cancellation.appt_ref})
 };
 
 export const getBusyDaysReport = async (req, res) => {
