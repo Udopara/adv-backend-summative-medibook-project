@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import pool from "../config/db.js";
 import { AppError } from "../libs/appError.js";
 import * as AppointmentWaitlist from "../services/appointment-waitlist.service.js";
-import { waitlistQueue } from "../queues/appointment-waitlist.queue.js";
+import { waitlistQueue } from "../libs/queue.js";
 import {
   DAILY_CAP,
   computeRefundAmount,
