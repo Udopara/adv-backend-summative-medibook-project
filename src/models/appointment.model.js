@@ -1,6 +1,8 @@
 import crypto from "node:crypto";
 import pool from "../config/db.js";
 import { AppError } from "../libs/appError.js";
+import * as AppointmentWaitlist from "../services/appointment-waitlist.service.js";
+import { waitlistQueue } from "../queues/appointment-waitlist.queue.js";
 import {
   DAILY_CAP,
   computeRefundAmount,
@@ -48,10 +50,22 @@ class AppointmentModel {
         [doctor_id, apptDatetime],
       );
       if (booked >= DAILY_CAP) {
-        throw new AppError(
-          `Doctor is fully booked for this day (${DAILY_CAP} appointments)`,
-          409,
-        );
+        await conn.rollback();
+
+        await AppointmentWaitlist.addAppointmentToWaitlist(doctor_id, {
+          patient_id,
+          doctor_id,
+          room,
+          apptDate: apptDate.toISOString(),
+          requested_at: new Date().toISOString(),
+        });
+
+        return {
+          status: "waitlisted",
+          message: `Doctor is fully booked for this day (${DAILY_CAP} appointments). Patient added to waitlist.`,
+          patient_id,
+          doctor_id,
+        };
       }
 
       const apptRef = generateRef();
@@ -70,7 +84,20 @@ class AppointmentModel {
         error.code === "ER_DUP_ENTRY" &&
         error.sqlMessage?.includes("uq_doctor_active_slot")
       ) {
-        throw new AppError("This slot is already booked for the doctor", 409);
+        await AppointmentWaitlist.addAppointmentToWaitlist(doctor_id, {
+          patient_id,
+          doctor_id,
+          room,
+          apptDate: apptDate.toISOString(),
+          requested_at: new Date().toISOString(),
+        });
+
+        return {
+          status: "waitlisted",
+          message: "This slot is already booked for the doctor. Patient added to waitlist.",
+          patient_id,
+          doctor_id,
+        };
       }
       throw error;
     } finally {
@@ -110,6 +137,15 @@ class AppointmentModel {
       );
 
       await conn.commit();
+      try {
+        await waitlistQueue.add("process-waitlist", {
+          doctor_id: appt.doctor_id,
+          freed_datetime: appt.appt_datetime,
+          room: appt.room,
+        });
+      } catch (queueError) {
+        console.error("Failed to notify waitlist queue:", queueError.message);
+      }
 
       return {
         appt_ref: appt.appt_ref,

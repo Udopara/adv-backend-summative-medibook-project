@@ -44,6 +44,10 @@ export const bookAppointment = async (req, res) => {
     apptDate,
   });
 
+  if (appointment.status === "waitlisted") {
+    return res.status(200).json(appointment);
+  }
+
   res.status(201).json(appointment);
   Logger.logBooking({ appointmentRef: appointment.appt_ref });
 };
