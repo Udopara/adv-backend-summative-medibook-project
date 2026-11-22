@@ -21,7 +21,11 @@ class Logger {
   static async logCancellation(data) {
     await this.#write("cancellation", data);
   }
+
+  static async logNotification(data) {
+    const payload = typeof data === "string" ? { message: data } : data;
+    await this.#write("email notification", payload);
+  }
 }
 
-
-export default Logger
+export default Logger;

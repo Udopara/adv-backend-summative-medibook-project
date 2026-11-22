@@ -2,6 +2,7 @@ import AppointmentModel from "../models/appointment.model.js";
 import { AppError } from "../libs/appError.js";
 import { parseApptDatetime, validateSlot } from "../libs/appointmentRules.js";
 import Logger from "../libs/logger.js";
+import { notificationQueue } from "../libs/queue.js";
 
 const isPositiveInt = (value) => Number.isInteger(Number(value)) && Number(value) > 0;
 
@@ -50,6 +51,10 @@ export const bookAppointment = async (req, res) => {
 
   res.status(201).json(appointment);
   Logger.logBooking({ appointmentRef: appointment.appt_ref });
+
+  notificationQueue.add("send-notification", {
+    appt_ref: appointment.appt_ref
+  });
 };
 
 export const cancelAppointment = async (req, res) => {
