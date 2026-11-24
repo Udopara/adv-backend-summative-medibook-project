@@ -2,6 +2,8 @@ import { Worker } from "bullmq";
 import * as AppointmentWaitlist from "../services/appointment-waitlist.service.js";
 import { redisConnection } from "../config/redis.js";
 import AppointmentModel from "../models/appointment.model.js";
+import { notificationQueue } from "../libs/queue.js";
+import Logger from "../libs/logger.js";
 
 export const waitlistWorker = new Worker(
   "appointment-waitlist",
@@ -33,6 +35,13 @@ export const waitlistWorker = new Worker(
       });
 
       await AppointmentWaitlist.removeNextAppointmentFromWaitlist(doctor_id);
+
+      await Logger.logBooking({ appointmentRef: bookedAppt.appt_ref });
+
+      await notificationQueue.add("send-notification", {
+        appt_ref: bookedAppt.appt_ref,
+      });
+
       console.log(
         `[Waitlist Worker] Successfully promoted patient ${appointmentData.patient_id} into freed slot ${bookedAppt.appt_datetime} (${bookedAppt.appt_ref})`,
       );
