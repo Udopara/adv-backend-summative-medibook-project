@@ -128,3 +128,158 @@ Create a **simple HTML page** (served by your Express app at `GET /feedback`) co
 - A short **viva/demo (10 minutes)** walkthrough.
 
 **Automatic penalties:** SQL injection vector anywhere in the app (−15), secrets committed to the repo (−5), app does not start per README instructions (−10), work the student cannot explain in the video (or at a follow-up viva if called) | Academic integrity referral; affected criteria re-scored at Developing or below |
+
+
+---
+
+## Project Documentation & Implementation Details
+
+### Video Demo Walkthrough
+- **10-minute Video Demo Walkthrough:** [Video Link](https://youtu.be/BOFssyO80DU) *(Click here to watch the full project and code walkthrough)*
+
+---
+
+### Setup & Installation Guide
+
+#### 1. Prerequisites
+- **Node.js**: v20.x or higher
+- **MySQL Server**: v8.0 or higher
+- **Redis Server**: v6.x or higher
+
+#### 2. Clone and Install Dependencies
+```bash
+git clone <repository-url>
+cd adv-backend-summative-medibook-project
+npm install
+```
+
+#### 3. Environment Configuration
+Copy the sample environment file:
+```bash
+cp .env.example .env
+```
+Open `.env` and configure your credentials:
+```env
+# Server Configuration
+PORT=3000
+NODE_ENV=development
+
+# MySQL Database Configuration
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=your_mysql_password
+DB_NAME=clinic_appointments
+
+# Redis Configuration
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=
+```
+
+#### 4. Database Setup & Seeding
+Ensure your MySQL server is running, then load the schema and seed data:
+```bash
+mysql -u root -p < database/schema.sql
+mysql -u root -p < database/seed.sql
+```
+*Note: `schema.sql` creates the database `clinic_appointments` and the 3 normalized entities (`Patient`, `Doctor`, `Appointment`) with all constraints and generated columns. `seed.sql` populates sample patients, doctors, and appointments (including a doctor near the 12-slot daily cap and a doctor with zero appointments).*
+
+#### 5. Running the Application
+Start the services in two separate terminal windows:
+
+**Terminal 1 — Web API Server:**
+```bash
+npm start
+# Or for auto-reloading during development:
+# npm run dev
+```
+The server will start listening at `http://localhost:3000`.
+
+**Terminal 2 — Background Queue Worker Process:**
+```bash
+npm run worker
+```
+The BullMQ worker process will start listening to the waitlist promotion and email notification queues.
+
+#### 6. Running Unit Tests
+Unit tests are implemented using Jest and test pure domain functions in isolation without requiring live MySQL or Redis connections:
+```bash
+npm test
+```
+
+---
+
+### Written Architectural Justifications
+
+### Part C — Controllers, Endpoints & Database Architecture
+
+#### 1. RESTful Routing & Architecture
+- **Resource Orientation:** Routes are partitioned cleanly into dedicated modules (`/patient`, `/doctor`, `/appointment`, and `/report`).
+- **Separation of Concerns:** Controllers handle input validation and HTTP responses, delegating all database operations strictly to Models. Neither controllers nor route handlers contain raw SQL statements.
+- **Central Error Handling:** The application leverages Express 5's automatic rejection forwarding. Custom operational errors are thrown via `AppError(message, statusCode)` and handled by a central error middleware (`src/middleware/errorHandler.js`). Database errors (such as duplicate entries and foreign key constraints) and malformed JSON payloads are mapped to HTTP `400`, `404`, `409`, or `422` with consistent JSON error structures.
+
+#### 2. The 3-Entity Limit & The Active Slot Pattern
+The project brief strictly specifies: *"exactly 3 entities: patients, doctors, appointments... no additional tables"*.
+- **The Challenge:** When an appointment is cancelled, the doctor's time slot must become immediately re-bookable by another patient, while the original record must be preserved for financial and refund auditing. A standard `UNIQUE (doctor_id, appt_datetime)` constraint would block any subsequent booking attempts.
+- **The Solution:** We implemented the **Generated Column Pattern**:
+  ```sql
+  active_slot DATETIME AS (IF(status = 'booked', appt_datetime, NULL)) STORED,
+  CONSTRAINT uq_doctor_active_slot UNIQUE (doctor_id, active_slot)
+  ```
+  In MySQL, a `UNIQUE` constraint permits multiple `NULL` values. When an appointment is booked, `active_slot` stores `appt_datetime`. When cancelled, its status updates to `'cancelled'`, making `active_slot` automatically evaluate to `NULL`. This immediately releases the slot for other patients while keeping full cancellation and refund history in the same table without creating extra tables.
+
+#### 3. Concurrency Control & The 12-Slot Daily Cap
+- **Race Condition Prevention:** To prevent simultaneous requests from bypassing the 12-appointment daily limit, booking runs inside an explicit MySQL transaction:
+  ```sql
+  SELECT consultation_fee FROM Doctor WHERE doctor_id = ? FOR UPDATE;
+  ```
+  The `FOR UPDATE` clause places an exclusive row-level lock on the Doctor record. Concurrent booking requests for the same doctor are serialized (queued one after another). The current day's bookings are counted (`COUNT(*) WHERE status = 'booked'`), and if the cap is reached, the transaction rolls back before inserting.
+- **Double-Booking Guarantee:** The `uq_doctor_active_slot` constraint serves as the final, immutable database engine barrier preventing two patients from ever securing the same slot at the exact same millisecond.
+
+#### 4. Tiered Refund Business Rules
+Cancellation notice is calculated on the server against the scheduled `appt_datetime`:
+- `> 48 hours`: 100% refund
+- `24 to 48 hours`: 50% refund (including boundaries at exactly 48.0h and 24.0h)
+- `< 24 hours`: 0% refund
+Both status transition and refund recording occur in a single atomic transaction.
+
+#### 5. Advanced SQL Queries (Models)
+- **Doctors Report (`DoctorModel.report`):**
+  Uses a `LEFT JOIN` between `Doctor` and `Appointment` combined with `COUNT(CASE WHEN a.status = 'booked' THEN 1 END)` and `COALESCE(SUM(...), 0.00)` to include all doctors, specifically retaining doctors with zero appointments.
+- **Busy Days Report (`AppointmentModel.busyDays`):**
+  Uses `JOIN Doctor`, `GROUP BY d.doctor_id, DATE(a.appt_datetime)`, and `HAVING COUNT(a.appt_ref) > ?` to dynamically identify days exceeding 80% utilization (more than 9.6 slots, i.e., 10+ bookings).
+
+---
+
+### Part D — Node.js `fs` Module & Audit Logging
+
+- **Non-Blocking Asynchronous I/O:** Every successful booking and cancellation appends a structured JSON line entry to `logs/audit.log` using `node:fs/promises` (`appendFile` and `mkdir`). Synchronous (`*Sync`) methods are strictly avoided.
+- **Automatic Directory Creation:** `mkdir(dirname(filePath), { recursive: true })` ensures the `logs/` directory is created on first write without crashing.
+- **Failure Isolation:** Audit logging operations are isolated within error-handling boundaries so that an unexpected file system error never fails the user's primary HTTP request or transaction.
+
+---
+
+### Part E — Queues, Redis & Background Workers
+
+#### 1. Waitlist Queue Architecture
+- **Queue Structure:** Fully booked slots or doctor-days push patients onto a FIFO queue (`waitlist:<doctor_id>` in Redis).
+- **Event-Driven Promotion:** When an appointment is cancelled, the web server pushes a lightweight event job to BullMQ (`appointment-waitlist`).
+- **Resilient Worker Design (Failure Recovery):**
+  The assessment asks: *"What happens if the promoted booking itself fails? The patient must not simply vanish from both the queue and the appointments table."*
+  - The worker uses a **peek-before-delete** pattern:
+    1. It reads the head of the waitlist (`lindex 0`) without removing the record.
+    2. It attempts to book the patient into MySQL using `AppointmentModel.book()`.
+    3. **Only upon a successful database commit** does it execute `removeNextAppointmentFromWaitlist()` (`lpop`).
+    4. If the database insertion fails (e.g. database timeout or lock conflict), the patient is **never deleted from Redis** and remains at the front of the queue, ensuring no data loss.
+
+#### 2. Notification Background Jobs
+- When an appointment is confirmed, a `send-notification` job is pushed to the BullMQ `notification-list` queue.
+- The background worker processes the job asynchronously by joining appointment and patient data, generating a personalized confirmation message, and writing it directly to `logs/audit.log` via the `Logger` service.
+- Both workers are unified under `src/workers/index.js` and managed via `npm run worker`.
+
+---
+
+### Part F & G — Testing and Internationalization Overview
+- **Unit Testing (Part F):** 11 tests covering all three refund tiers, exact boundaries (24h, 48h), working hours boundaries (17:00, 09:15), and malformed dates. Run with `npm test`.
+- **Multilingual Support (Part G):** Fully localized course feedback page (`/feedback`) supporting English (`en`), French (`fr`), and Igbo (`ig`) with `Intl.DateTimeFormat` date localization and safe fallback to English.
