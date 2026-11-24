@@ -1,0 +1,33 @@
+{
+  "title": "Formulaire d'évaluation du cours",
+  "instructions": "Veuillez prendre quelques instants pour répondre aux 5 questions de développement suivantes sur votre expérience d'apprentissage.",
+  "today_date": "Date d'aujourd'hui",
+  "questions": [
+    {
+      "id": "q1",
+      "text": "Quel sujet de ce cours avez-vous trouvé le plus difficile, et pourquoi ?",
+      "answer": "La gestion des accès concurrents et la prévention des 'race conditions' a été le sujet le plus difficile pour moi. Comprendre comment des requêtes simultanées pouvaient dépasser le plafond quotidien sans verrouillage au niveau des lignes (SELECT ... FOR UPDATE) a nécessité des tests approfondis sur les niveaux d'isolation des transactions MySQL."
+    },
+    {
+      "id": "q2",
+      "text": "Décrivez un concept que vous n'avez compris qu'après les travaux pratiques. Qu'est-ce qui a provoqué le déclic ?",
+      "answer": "Les files d'attente de messages et les processus de traitement en arrière-plan avec BullMQ et Redis. En cours, cela semblait être de simples listes, mais implémenter la promotion de la liste d'attente sans perdre de patient en cas d'échec m'a permis de véritablement comprendre l'architecture événementielle."
+    },
+    {
+      "id": "q3",
+      "text": "Comment votre approche de la conception de bases de données ou d'API a-t-elle évolué depuis le début du trimestre ?",
+      "answer": "Au début du trimestre, je comptais trop sur les ORM et je mettais toute la logique dans le code JavaScript. Désormais, je conçois des bases de données avec des contraintes strictes (UNIQUE, CHECK, colonnes calculées) et j'utilise des requêtes SQL paramétrées pour garantir l'intégrité."
+    },
+    {
+      "id": "q4",
+      "text": "Qu'amélioreriez-vous dans la façon dont ce cours a été enseigné ou évalué ?",
+      "answer": "J'aimerais que le cours propose davantage d'ateliers pratiques guidés sur le débogage des files Redis et la gestion des pools de connexions avant le projet final, car le passage du simple CRUD aux workers en arrière-plan représente un grand saut technique."
+    },
+    {
+      "id": "q5",
+      "text": "Comment prévoyez-vous d'appliquer ce que vous avez appris dans ce cours à l'avenir ?",
+      "answer": "Je prévois d'appliquer ces bonnes pratiques — requêtes paramétrées, workers résilients, journalisation d'audit et tests unitaires automatisés — dans mes futures applications web et projets d'architecture backend en entreprise."
+    }
+  ],
+  "submit_button": "Soumettre les commentaires"
+}

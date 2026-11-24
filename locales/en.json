@@ -1,0 +1,33 @@
+{
+  "title": "Course Feedback Form",
+  "instructions": "Please take a few moments to answer the following 5 essay questions about your learning experience.",
+  "today_date": "Today's Date",
+  "questions": [
+    {
+      "id": "q1",
+      "text": "Which topic in this course did you find most challenging, and why?",
+      "answer": "Concurrency control and preventing race conditions was the most challenging topic for me. Understanding how simultaneous booking requests could bypass the daily cap without row-level locks (SELECT ... FOR UPDATE) took serious debugging and deep dives into MySQL transaction isolation levels."
+    },
+    {
+      "id": "q2",
+      "text": "Describe one concept you understood only after the practical assignments. What made it click?",
+      "answer": "Message queues and asynchronous worker processes with BullMQ and Redis. In lectures, queues sounded like simple lists, but building the waitlist promotion worker and handling failure recovery without dropping waitlisted patients made the event-driven architecture click."
+    },
+    {
+      "id": "q3",
+      "text": "How has your approach to designing databases or APIs changed since the start of the trimester?",
+      "answer": "At the start of the trimester, I used to rely on ORMs and write business logic entirely in application code without constraints. Now, I design databases defensively with strict constraints (UNIQUE, CHECK, generated columns) and leverage parameterized SQL queries and database-level guarantees."
+    },
+    {
+      "id": "q4",
+      "text": "What would you improve about how this course was taught or assessed?",
+      "answer": "I would include more live architecture reviews and hands-on lab sessions on debugging distributed Redis queues and connection pooling before the summative project, as transitioning from basic CRUD to event-driven background workers was a steep learning curve."
+    },
+    {
+      "id": "q5",
+      "text": "How do you plan to apply what you learned in this course going forward?",
+      "answer": "I plan to apply these patterns—such as parameterized queries, resilient queue workers, audit logging, and automated unit testing—directly into production web applications and multi-tier backend architectures in future projects and internships."
+    }
+  ],
+  "submit_button": "Submit Feedback"
+}

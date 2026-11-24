@@ -1,0 +1,33 @@
+{
+  "title": "Fọm Ntụle Maka Nkuzi",
+  "instructions": "Biko wepụta obere oge iji zaa ajụjụ edemede ise ndị a gbasara ahụmịhe mmụta gị.",
+  "today_date": "Ụbọchị Taa",
+  "questions": [
+    {
+      "id": "q1",
+      "text": "Kedu isiokwu dị na nkuzi a ị chọpụtara na ọ kacha sie ike, ma n'ihi gịnị?",
+      "answer": "Njikwa njikọta (concurrency control) na igbochi nsogbu 'race conditions' bụ isiokwu kacha sie m ike. Ịghọta otú arịrịọ abụọ na-abịa n'otu oge nwere ike isi mebie oke ọhụhụ dọkịta kwa ụbọchị ma ọ bụrụ na ejighị 'SELECT ... FOR UPDATE' kpọchie ahịrị data were m oge na nyocha miri emi."
+    },
+    {
+      "id": "q2",
+      "text": "Kọwaa otu echiche ị ghọtara naanị mgbe ị mechara ọrụ aka. Gịnị mere o ji doo gị anya?",
+      "answer": "Usoro nhazi ozi (message queues) na ndị ọrụ azụmahịa (background workers) site na iji BullMQ na Redis. Na klaasị, ọ dị ka naanị ndepụta dị mfe, mana iwulite usoro nkwalite ndị nọ na ndepụta nchere (waitlist) na ijide n'aka na onye ọ bụla anaghị efu ma ọ bụrụ na ntinye daa mere ka m ghọta ya nke ọma."
+    },
+    {
+      "id": "q3",
+      "text": "Kedu ka usoro gị si agbanwe n'ịhazi ọdụ data ma ọ bụ API kemgbe mmalite nke tramester a?",
+      "answer": "Na mbido tramester a, ana m adabere na ngwa ORM ma na-ede iwu nchekwa niile n'ime koodu JavaScript. Ugbu a, ana m eji nlezianya chepụta ọdụ data nwere iwu siri ike (dịka UNIQUE, CHECK, na kọlụm ewepụtara) yana iji ajụjụ SQL paramita chebe nchekwa usoro ahụ."
+    },
+    {
+      "id": "q4",
+      "text": "Kedu ihe ị ga-eme ka ọ ka mma n'ụzọ e si kụzie ma ọ bụ nyochaa nkuzi a?",
+      "answer": "Ọ ga-amasị m ka a mụbaa oge nkuzi aka ọrụ na otu esi edozi nsogbu na Redis queues na njikọ ọdụ data tupu nnukwu ọrụ a, n'ihi na ịhapụ CRUD dị mfe banye na usoro ọrụ azụmahịa bụ nnukwu ọganihu."
+    },
+    {
+      "id": "q5",
+      "text": "Kedu ka ị na-eme atụmatụ iji ihe ị mụtara na nkuzi a na-aga n'ihu?",
+      "answer": "Ana m eme atụmatụ iji ụkpụrụ ndị a mụtara — dịka ajụjụ SQL echedoro, ndị ọrụ nkwado kwụsiri ike, ndekọ nyocha (audit logging), na ule nkeji (unit testing) — wuo ngwa weebụ siri ike na ọrụ nka dị elu n'ọdịnihu."
+    }
+  ],
+  "submit_button": "Zipu Nzaghachi"
+}
